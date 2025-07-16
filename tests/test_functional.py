@@ -1,8 +1,10 @@
 import unittest
 import numpy as np
 import tensorflow as tf
-from main import load_and_preprocess, build_model, train_model
+from main import *
+from main import get_prediction_sample  # ✅ FIXED: move import to top
 from tests.TestUtils import TestUtils
+
 
 class TestIrisClassifierYaksha(unittest.TestCase):
 
@@ -45,18 +47,6 @@ class TestIrisClassifierYaksha(unittest.TestCase):
             self.test_obj.yakshaAssert("TestModelStructure", False, "functional")
             print("TestModelStructure = Failed | Exception:", e)
 
-    def test_model_prediction_for_setosa(self):
-        try:
-            sample = np.array([[5.1, 3.5, 1.4, 0.2]])
-            sample_scaled = self.scaler.transform(sample)
-            prediction = self.model.predict(sample_scaled)
-            result = prediction[0][0] > 0.5
-            self.test_obj.yakshaAssert("TestSetosaPrediction", result, "functional")
-            print("TestSetosaPrediction =", "Passed" if result else "Failed")
-        except Exception as e:
-            self.test_obj.yakshaAssert("TestSetosaPrediction", False, "functional")
-            print("TestSetosaPrediction = Failed | Exception:", e)
-
     def test_model_accuracy(self):
         try:
             _, accuracy = self.model.evaluate(self.X_test, self.y_test, verbose=0)
@@ -66,3 +56,27 @@ class TestIrisClassifierYaksha(unittest.TestCase):
         except Exception as e:
             self.test_obj.yakshaAssert("TestModelAccuracy", False, "functional")
             print("TestModelAccuracy = Failed | Exception:", e)
+
+    def test_prediction_sample_correctness_and_result(self):
+        try:
+            expected_sample = np.array([5.1, 3.5, 1.4, 0.2])
+            actual_sample = get_prediction_sample()
+
+            # ✅ Ensure correct shape: (4,) -> (1, 4)
+            actual_sample = np.array(actual_sample).reshape(1, -1)
+
+            # ✅ Check if sample used in main matches expected one
+            sample_match = np.allclose(actual_sample[0], expected_sample)
+
+            # ✅ Scale and predict
+            sample_scaled = self.scaler.transform(actual_sample)
+            prediction = self.model.predict(sample_scaled)
+            is_setosa = prediction[0][0] > 0.5
+
+            result = sample_match and is_setosa
+            self.test_obj.yakshaAssert("TestPredictionSampleCorrectAndPrediction", result, "functional")
+            print("TestPredictionSampleCorrectAndPrediction =", "Passed" if result else "Failed")
+
+        except Exception as e:
+            self.test_obj.yakshaAssert("TestPredictionSampleCorrectAndPrediction", False, "functional")
+            print("TestPredictionSampleCorrectAndPrediction = Failed | Exception:", e)
